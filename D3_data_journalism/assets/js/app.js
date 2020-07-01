@@ -1,26 +1,20 @@
-// @TODO: YOUR CODE HERE!
 
-// Step 1: Set up our chart
-//= ================================
-var svgWidth = 1200;
+
+var svgWidth = 960;
 var svgHeight = 500;
 
 var margin = {
   top: 20,
   right: 40,
   bottom: 60,
-  left: 340
+  left: 100
 };
 
 var width = svgWidth - margin.left - margin.right;
 var height = svgHeight - margin.top - margin.bottom;
 
-// Step 2: Create an SVG wrapper,
-// append an SVG group that will hold our chart,
-// and shift the latter by left and top margins.
-// =================================
-var svg = d3
-  .select("body")
+// Create an SVG wrapper, append an SVG group that will hold our chart and shift the latter by left and top margins
+var svg = d3.select("#scatter")
   .append("svg")
   .attr("width", svgWidth)
   .attr("height", svgHeight);
@@ -28,20 +22,15 @@ var svg = d3
 var chartGroup = svg.append("g")
   .attr("transform", `translate(${margin.left}, ${margin.top})`);
 
-// Step 3:
-// Import data from the donuts.csv file
-// =================================
+// Import Data
 d3.csv("../../assets/data/data.csv").then(function(stateData) {
-    console.log(stateData);
-      // Step 4: Parse the data
-  // Format the data and convert to numerical and date values
-  // =================================
-  // Create a function to parse date and time
-  var parseTime = d3.timeParse("%d-%b");
+
+    // Step 1: Parse Data/Cast as numbers
+    // ==============================
+
 
   // Format the data
   stateData.forEach(function(data) {
-    data.date = parseTime(data.date);
     data.poverty = +data.poverty;
     data.povertyMoe = +data.povertyMoe;
     data.age = +data.age;
@@ -59,75 +48,69 @@ d3.csv("../../assets/data/data.csv").then(function(stateData) {
     data.smokesHigh = +data.smokesHigh;
   });
 
-  
+// Create scale functions
+var xLinearScale = d3.scaleLinear()
+  .domain(d3.extent(stateData, d => d.age))
+  .range([0, width]);
 
+var yLinearScale = d3.scaleLinear()
+  .domain([0, d3.max(stateData, d => d.poverty)])
+  .range([height, 0]);
 
-  // Step 5: Create Scales
-  //= ============================================
-  var xLinearScale = d3.scaleLinear()
-    .domain(d3.extent(stateData, d => d.age))
-    .range([0, width]);
+// Create axis functions
+var bottomAxis = d3.axisBottom(xLinearScale);
+var leftAxis = d3.axisLeft(yLinearScale);
 
-  var yLinearScale1 = d3.scaleLinear()
-    .domain([0, d3.max(stateData, d => d.poverty)])
-    .range([height, 0]);
+// Append axes to the chart
+chartGroup.append("g")
+  .attr("transform", `translate(0, ${height})`)
+  .call(bottomAxis);
 
-  // Step 6: Create Axes
-  // =============================================
-  var bottomAxis = d3.axisBottom(xLinearScale);
-  var leftAxis = d3.axisLeft(yLinearScale1);
-  
-  // Step 7: Append the axes to the chartGroup
-  // ==============================================
-  // Add bottomAxis
-  chartGroup.append("g").attr("transform", `translate(0, ${height})`).call(bottomAxis);
+chartGroup.append("g")
+  .call(leftAxis);
 
-  // Add leftAxis to the left side of the display
-  chartGroup.append("g").call(leftAxis);
+// Create circles
+var circlesGroup = chartGroup.selectAll("Circle")
+  .data(stateData)
+  .enter()
+  .append("circle")
+  .attr("cx", d => xLinearScale(d.age))
+  .attr("cy", d => yLinearScale(d.poverty))
+  .attr("r", "15")
+  .attr("fill", "blue")
+  .attr("opacity", "0.5");
 
-  // Create X axis labels
-  chartGroup.append("text")
-  .attr("transform", `translate(${width / 2}, ${height + margin.top + 20})`)
+var circleLabels = chartGroup.selectAll(null).data(stateData).enter().append("text");
+
+circleLabels
+  .attr("x", function(d) {
+    return xLinearScale(d.age);
+  })
+  .attr("y", function(d) {
+    return yLinearScale(d.poverty);
+  })
+  .text(function(d) {
+    return d.abbr;
+  })
+  .attr("font-family", "sans-serif")
+  .attr("font-size", "12px")
   .attr("text-anchor", "middle")
-  .attr("font-size", "16px")
-  .attr("fill", "green")
-  .text("Age");
+  .attr("fill", "white");
 
-  // Create Y axes labels
-  chartGroup.append("text")
+// Create axes labels
+chartGroup.append("text")
   .attr("transform", "rotate(-90)")
-  .attr("y", 0 - margin.left + 280)
+  .attr("y", 0 - margin.left + 40)
   .attr("x", 0 - (height / 2))
   .attr("dy", "1em")
   .attr("class", "axisText")
-  .text("Poverty");
+  .text("Poverty Rate");
 
-
-  chartGroup.append("text")
-  .attr("transform", `translate(${width / 2}, ${height + margin.top + 37})`)
-  .attr("text-anchor", "middle")
-  .attr("font-size", "16px")
-  .attr("fill", "orange")
-  .text("Place Holder");
-
-  // Create Circles
-  // ==============================
-  var circleGroup = chartGroup.selectAll("circle")
-    .data(stateData)
-    .enter()
-    .append("circle")
-    .attr("cx", d => xLinearScale(d.age))
-    .attr("cy", d => yLinearScale(d.poverty))
-    .attr("r", "15")
-    .attr("fill", "pink")
-    .attr("opacity", ".5")
-    .text("cx", d => xLinearScale(d.age))
-    .text("cy", d => yLinearScale(d.poverty));
- 
-
+chartGroup.append("text")
+  .attr("transform", `translate(${width / 2}, ${height + margin.top + 30})`)
+  .attr("class", "axisText")
+  .text("Age");
+    
 }).catch(function(error) {
-  console.log(error);
-});
-
-
-
+    console.log(error);
+})
